@@ -1,15 +1,51 @@
+image: microsoft/dotnet:latest
+
+before_script: 
+  - cd HelloWorld.App
+  - dotnet restore --packages ./.nuget/
+  
 stages:
   - build
   - test
+  - package
 
 build:
-  image: microsoft/dotnet:latest
   stage: build
   script:
-    - "dotnet build"
-	
+    - dotnet build --no-restore
+  only:
+    changes:
+      - HelloWorld.App/**/*
+      - .gitlab-ci.yml
+
 test:
-  image: microsoft/dotnet:latest
   stage: test
   script:
-    - "dotnet test"
+    - dotnet test --no-restore
+  only:
+    changes:
+      - HelloWorld.App/**/*
+      - .gitlab-ci.yml
+
+package: 
+  stage: package
+  script:
+    - dotnet publish HelloWorld.App -c Release -o ../artifacts/HelloWorld.App --no-restore
+  artifacts:
+    name: "HelloWorld.App"
+    paths:
+      - HelloWorld.App/artifacts/HelloWorld.App
+    expire_in: 2 days
+  only:
+    refs:
+      - master
+    changes:
+      - HelloWorld.App/**/*
+      - .gitlab-ci.yml
+  when: manual
+      
+cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - HelloWorld.App/.nuget/
+
